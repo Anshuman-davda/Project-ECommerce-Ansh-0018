@@ -26,7 +26,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors({
-  origin: "https://internship-2-t4jw.onrender.com",
+  origin: "https://project-ecommerce-ansh-0018.onrender.com",
   methods: ["GET", "POST", "DELETE", "PUT"],
   allowedHeaders: [
     "Content-Type",
