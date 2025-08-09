@@ -13,6 +13,8 @@ const createPayPalPayment = (paymentJson) => {
 
 const createOrder = async (req, res) => {
   try {
+    console.log('[PayPal] Creating order with payload:', JSON.stringify(req.body, null, 2));
+    
     const {
       userId,
       cartItems,

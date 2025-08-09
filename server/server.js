@@ -1,8 +1,18 @@
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const path = require('path');
+
+// Log environment variables for debugging (sanitized)
+console.log('Environment Check:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('PORT:', process.env.PORT);
+console.log('MongoDB:', process.env.ATLASDB_URL ? '[set]' : '[missing]');
+console.log('PayPal Mode:', process.env.PAYPAL_MODE);
+console.log('PayPal Client:', process.env.PAYPAL_CLIENT_ID ? '[set]' : '[missing]');
+console.log('PayPal Secret:', process.env.PAYPAL_CLIENT_SECRET ? '[set]' : '[missing]');
 
 const authRouter = require("./routes/auth/auth-routes");
 const adminProductsRouter = require("./routes/admin/products-routes");
