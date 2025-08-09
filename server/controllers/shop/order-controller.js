@@ -31,52 +31,39 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "totalAmount must be a number" });
     }
 
-    // Create PayPal payment configuration
-    const FRONTEND_URL = process.env.NODE_ENV === 'production'
-      ? 'https://project-ecommerce-ansh-0018.onrender.com'
-      : 'http://localhost:5173';
-
     const create_payment_json = {
       intent: "sale",
       payer: {
         payment_method: "paypal",
       },
       redirect_urls: {
-        return_url: `${FRONTEND_URL}/shop/paypal-return`,
-        cancel_url: `${FRONTEND_URL}/shop/paypal-cancel`,
+        return_url: "https://internship-2-t4jw.onrender.com/shop/paypal-return",
+        cancel_url: "https://internship-2-t4jw.onrender.com/shop/paypal-cancel",
       },
       transactions: [
         {
           item_list: {
             items: cartItems.map((item) => ({
-              name: item.title || 'Product',
+              name: item.title,
               sku: item.productId,
-              price: (item.price || 0).toFixed(2),
+              price: item.price.toFixed(2),
               currency: "USD",
-              quantity: item.quantity || 1,
+              quantity: item.quantity,
             })),
           },
           amount: {
             currency: "USD",
             total: totalAmount.toFixed(2),
           },
-          description: `Order for ${userId}`,
+          description: "description",
         },
       ],
     };
 
     console.log("Creating PayPal payment with:", create_payment_json);
 
-    paypal.payment.create(create_payment_json, async (error, paymentInfo) => {
-      if (error) {
-        console.error("PayPal payment creation error:", error.response || error);
-        return res.status(500).json({
-          success: false,
-          message: "Error while creating paypal payment",
-          error: error.response || error,
-        });
-      }
-
+    try {
+      const paymentInfo = await paypal.createPayment(create_payment_json);
       console.log("PayPal payment created successfully:", paymentInfo);
 
       const approvalLink = paymentInfo.links.find(
@@ -102,7 +89,7 @@ const createOrder = async (req, res) => {
         totalAmount,
         orderDate,
         orderUpdateDate,
-        paymentId,
+        paymentId: paymentInfo.id,
         payerId,
       });
 
@@ -114,7 +101,15 @@ const createOrder = async (req, res) => {
         approvalURL: approvalLink.href,
         orderId: newlyCreatedOrder._id,
       });
-    });
+    } catch (error) {
+      console.error("PayPal payment creation error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error while creating PayPal payment",
+        error: error.message || error,
+      });
+      return;
+    }
   } catch (e) {
     console.error("createOrder exception:", e);
     res.status(500).json({
@@ -158,24 +153,24 @@ const capturePayment = async (req, res) => {
       let product = await Product.findById(item.productId);
 
       if (!product) {
-        console.log(Product not found for id: ${item.productId});
+        console.log(`Product not found for id: ${item.productId}`);
         return res.status(404).json({
           success: false,
-          message: Not enough stock for this product ${item.productId},
+          message: `Product not found with id: ${item.productId}`,
         });
       }
 
       if (product.totalStock < item.quantity) {
-        console.log(Insufficient stock for product ${product.title}: Available ${product.totalStock}, requested ${item.quantity});
+        console.log(`Insufficient stock for product ${product.title}: Available ${product.totalStock}, requested ${item.quantity}`);
         return res.status(400).json({
           success: false,
-          message: Not enough stock for product: ${product.title},
+          message: `Not enough stock for product: ${product.title}`,
         });
       }
 
       product.totalStock -= item.quantity;
       await product.save();
-      console.log(Updated stock for product ${product.title}: New stock ${product.totalStock});
+      console.log(`Updated stock for product ${product.title}: New stock ${product.totalStock}`);
     }
 
     if(order.cartId) {
