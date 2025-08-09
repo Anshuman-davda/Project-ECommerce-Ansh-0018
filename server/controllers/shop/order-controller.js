@@ -13,7 +13,18 @@ const createPayPalPayment = (paymentJson) => {
 
 const createOrder = async (req, res) => {
   try {
-    console.log('[PayPal] Creating order with payload:', JSON.stringify(req.body, null, 2));
+    console.log('[PayPal] Initializing order creation...');
+    
+    // Validate request body
+    if (!req.body) {
+      console.error('[PayPal] Missing request body');
+      return res.status(400).json({
+        success: false,
+        message: 'Missing request data'
+      });
+    }
+
+    console.log('[PayPal] Request payload:', JSON.stringify(req.body, null, 2));
     
     const {
       userId,
@@ -72,11 +83,24 @@ const createOrder = async (req, res) => {
       ],
     };
 
+    console.log('[PayPal] Creating PayPal payment with config:', {
+      intent: create_payment_json.intent,
+      payment_method: create_payment_json.payer.payment_method,
+      currency: create_payment_json.transactions[0].amount.currency,
+      total: create_payment_json.transactions[0].amount.total
+    });
+
     let paymentInfo;
     try {
       paymentInfo = await createPayPalPayment(create_payment_json);
+      console.log('[PayPal] Payment created successfully:', paymentInfo.id);
     } catch (paypalError) {
-      console.error('PayPal payment creation error:', paypalError && paypalError.response ? paypalError.response : paypalError);
+      console.error('[PayPal] Payment creation error:', 
+        paypalError.response?.details || 
+        paypalError.response || 
+        paypalError.message || 
+        paypalError
+      );
       return res.status(500).json({
         success: false,
         message: 'Error while creating PayPal payment',
