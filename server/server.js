@@ -25,8 +25,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
-  "https://project-ecommerce-ansh-0018.onrender.com",
-  "https://internship-2-t4jw.onrender.com",
+  "https://project-ecommerce-ansh-0018.onrender.com"
+  
 ];
 
 app.use(cors({
