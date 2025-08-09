@@ -36,14 +36,19 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid totalAmount" });
     }
 
+    // Use deployed frontend URL in production, localhost in development
+    const FRONTEND_URL = process.env.NODE_ENV === 'production'
+      ? 'https://project-ecommerce-ansh-0018.onrender.com'
+      : 'http://localhost:5173';
+
     const create_payment_json = {
       intent: "sale",
       payer: {
         payment_method: "paypal",
       },
       redirect_urls: {
-        return_url: "https://project-ecommerce-ansh-0018.onrender.com/shop/paypal-return",
-        cancel_url: "https://project-ecommerce-ansh-0018.onrender.com/shop/paypal-cancel",
+        return_url: `${FRONTEND_URL}/shop/paypal-return`,
+        cancel_url: `${FRONTEND_URL}/shop/paypal-cancel`,
       },
       transactions: [
         {
