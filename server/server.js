@@ -24,8 +24,21 @@ mongoose
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const allowedOrigins = [
+  "https://project-ecommerce-ansh-0018.onrender.com",
+  "https://internship-2-t4jw.onrender.com",
+];
+
 app.use(cors({
-  origin: "https://project-ecommerce-ansh-0018.onrender.com",
+  origin: function(origin, callback) {
+    // allow requests with no origin like Postman, curl etc.
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   methods: ["GET", "POST", "DELETE", "PUT"],
   allowedHeaders: [
     "Content-Type",
@@ -34,9 +47,8 @@ app.use(cors({
     "Expires",
     "Pragma",
   ],
-  credentials: true,
+  credentials: true,
 }));
-
 app.use(cookieParser());
 app.use(express.json());
 
