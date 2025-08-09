@@ -3,10 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "scripts": {
-    "dev": "vite",
+   "scripts": {
+    "dev": "vite --mode development",
     "build": "vite build",
-    "lint": "eslint .",
+    "prod": "vite build --mode production",
     "preview": "vite preview"
   },
   "dependencies": {
