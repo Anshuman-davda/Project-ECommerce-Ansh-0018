@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const { ProductData, FeatureData } = require("./data.js");
 const Product = require("../models/Product.js");
-const Feature = require("../models/feature.js");
+const Feature = require("../models/Feature.js");
 
 const MONGO_URL = "mongodb+srv://makwanadharmik311:mr.dharmik31@cluster0.hlgqmfm.mongodb.net/";
 
