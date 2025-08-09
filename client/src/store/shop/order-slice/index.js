@@ -17,13 +17,27 @@ export const createNewOrder = createAsyncThunk(
   "/order/createNewOrder",
   async (orderData, { rejectWithValue }) => {
     try {
+      console.log('Creating order with data:', orderData);
       const response = await axios.post(
         `${API_URL}/api/shop/order/create`,
-        orderData
+        orderData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000 // 10 second timeout
+        }
       );
+      console.log('Order creation response:', response.data);
       return response.data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Order creation failed");
+      console.error('Order creation error:', error.response || error);
+      return rejectWithValue(
+        error.response?.data?.error || 
+        error.response?.data?.message || 
+        error.message || 
+        "Order creation failed"
+      );
     }
   }
 );

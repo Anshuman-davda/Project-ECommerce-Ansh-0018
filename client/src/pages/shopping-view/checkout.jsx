@@ -32,7 +32,7 @@ function ShoppingCheckout() {
         )
       : 0;
 
-  function handleInitiatePaypalPayment() {
+  async function handleInitiatePaypalPayment() {
     if (cartItems.length === 0) {
       toast({
         title: "Your cart is empty. Please add items to proceed",
@@ -81,14 +81,31 @@ function ShoppingCheckout() {
       payerId: "",
     };
 
-    dispatch(createNewOrder(orderData)).then((data) => {
-      console.log(data, "sangam");
-      if (data?.payload?.success) {
-        setIsPaymemntStart(true);
+    setIsPaymemntStart(true);
+    try {
+      const result = await dispatch(createNewOrder(orderData)).unwrap();
+      console.log('PayPal order created:', result);
+      
+      if (result?.success && result?.approvalURL) {
+        // Only redirect if we have a valid approval URL
+        window.location.href = result.approvalURL;
       } else {
         setIsPaymemntStart(false);
+        toast({
+          title: "PayPal Error",
+          description: "Could not initialize PayPal checkout. Please try again.",
+          variant: "destructive",
+        });
       }
-    });
+    } catch (error) {
+      console.error('PayPal checkout error:', error);
+      setIsPaymemntStart(false);
+      toast({
+        title: "Checkout Error",
+        description: error?.message || "Could not process checkout. Please try again.",
+        variant: "destructive",
+      });
+    }
   }
 
   if (approvalURL) {
