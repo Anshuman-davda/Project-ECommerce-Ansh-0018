@@ -109,12 +109,14 @@ const createOrder = async (req, res) => {
       orderId: newlyCreatedOrder._id,
     });
   } catch (e) {
-    console.error("createOrder error:", e);
+    // Log the error stack and message for debugging
+    console.error("createOrder error:", e && e.stack ? e.stack : e);
     res.status(500).json({
       success: false,
       message: "Some error occured!",
-    });
-  }
+      error: e && e.message ? e.message : e
+    });
+  }
 };
 
 const capturePayment = async (req, res) => {
