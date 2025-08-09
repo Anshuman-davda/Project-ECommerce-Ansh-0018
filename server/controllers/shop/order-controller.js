@@ -63,7 +63,15 @@ const createOrder = async (req, res) => {
     console.log("Creating PayPal payment with:", create_payment_json);
 
     try {
-      const paymentInfo = await paypal.createPayment(create_payment_json);
+      const paymentInfo = await new Promise((resolve, reject) => {
+  paypal.payment.create(create_payment_json, (error, payment) => {
+    if (error) {
+      return reject(error);
+    }
+    resolve(payment);
+  });
+});
+
       console.log("PayPal payment created successfully:", paymentInfo);
 
       const approvalLink = paymentInfo.links.find(
