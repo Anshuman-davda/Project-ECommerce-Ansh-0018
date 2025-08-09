@@ -31,31 +31,36 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "totalAmount must be a number" });
     }
 
+    // Create PayPal payment configuration
+    const FRONTEND_URL = process.env.NODE_ENV === 'production'
+      ? 'https://project-ecommerce-ansh-0018.onrender.com'
+      : 'http://localhost:5173';
+
     const create_payment_json = {
       intent: "sale",
       payer: {
         payment_method: "paypal",
       },
       redirect_urls: {
-        return_url: "https://internship-2-t4jw.onrender.com/shop/paypal-return",
-        cancel_url: "https://internship-2-t4jw.onrender.com/shop/paypal-cancel",
+        return_url: `${FRONTEND_URL}/shop/paypal-return`,
+        cancel_url: `${FRONTEND_URL}/shop/paypal-cancel`,
       },
       transactions: [
         {
           item_list: {
             items: cartItems.map((item) => ({
-              name: item.title,
+              name: item.title || 'Product',
               sku: item.productId,
-              price: item.price.toFixed(2),
+              price: (item.price || 0).toFixed(2),
               currency: "USD",
-              quantity: item.quantity,
+              quantity: item.quantity || 1,
             })),
           },
           amount: {
             currency: "USD",
             total: totalAmount.toFixed(2),
           },
-          description: "description",
+          description: `Order for ${userId}`,
         },
       ],
     };

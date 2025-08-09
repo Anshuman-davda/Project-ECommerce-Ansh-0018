@@ -37,24 +37,14 @@ function initPayPal() {
         config.mode = 'sandbox';
     }
 
-    return config;
+    // Configure PayPal SDK
+    paypal.configure(config);
+    return PayPalAPI;
 }
 
-try {
-    const config = validatePayPalConfig();
-    console.log('Configuring PayPal with mode:', config.mode);
-    
-    paypal.configure({
-        mode: config.mode,
-        client_id: config.clientId,
-        client_secret: config.clientSecret
-    });
-} catch (error) {
-    console.error('PayPal configuration error:', error.message);
-    throw error;
-}
-
-module.exports = paypal;
+// Initialize and export
+const paypalInstance = initPayPal();
+module.exports = paypalInstance;
   mode: process.env.PAYPAL_MODE,
   client_id: process.env.PAYPAL_CLIENT_ID,
   client_secret: process.env.PAYPAL_CLIENT_SECRET,

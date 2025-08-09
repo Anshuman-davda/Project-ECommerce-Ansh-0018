@@ -1,4 +1,4 @@
-2require('dotenv').config();
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
@@ -26,17 +26,26 @@ const shopReviewRouter = require("./routes/shop/review-routes");
 
 const commonFeatureRouter = require("./routes/common/feature-routes");
 
+// Connect to MongoDB with proper error handling
 mongoose
-  .connect(process.env.ATLASDB_URL)
-  .then(() => console.log("MongoDB connected"))
-  .catch((error) => console.log(error));
+  .connect(process.env.ATLASDB_URL, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000
+  })
+  .then(() => console.log("MongoDB connected successfully"))
+  .catch((error) => {
+    console.error("MongoDB connection error:", error);
+    process.exit(1);  // Exit if we can't connect to the database
+  });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 const allowedOrigins = [
-  "https://project-ecommerce-ansh-0018.onrender.com"
-  
+  "https://project-ecommerce-ansh-0018.onrender.com",
+  "http://localhost:5173",
+  "http://localhost:3000"
 ];
 
 app.use(cors({
