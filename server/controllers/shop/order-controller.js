@@ -70,7 +70,17 @@ const createOrder = async (req, res) => {
       ],
     };
 
-    const paymentInfo = await createPayPalPayment(create_payment_json);
+    let paymentInfo;
+    try {
+      paymentInfo = await createPayPalPayment(create_payment_json);
+    } catch (paypalError) {
+      console.error('PayPal payment creation error:', paypalError && paypalError.response ? paypalError.response : paypalError);
+      return res.status(500).json({
+        success: false,
+        message: 'Error while creating PayPal payment',
+        error: paypalError && paypalError.response ? paypalError.response : paypalError
+      });
+    }
 
     const newlyCreatedOrder = new Order({
       userId,
