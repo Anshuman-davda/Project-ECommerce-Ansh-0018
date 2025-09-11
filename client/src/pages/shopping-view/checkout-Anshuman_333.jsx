@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import UserCartItemsContent from "@/components/shopping-view/cart-items-content";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { createNewOrder, capturePayment } from "@/store/shop/order-slice";
+import { createNewOrder } from "@/store/shop/order-slice";
 import { Navigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -14,8 +14,6 @@ function ShoppingCheckout() {
   const { approvalURL } = useSelector((state) => state.shopOrder);
   const [currentSelectedAddress, setCurrentSelectedAddress] = useState(null);
   const [isPaymentStart, setIsPaymemntStart] = useState(false);
-  const [paypalOrderId, setPaypalOrderId] = useState(null);
-  const [dbOrderId, setDbOrderId] = useState(null);
   const dispatch = useDispatch();
   const { toast } = useToast();
 
@@ -34,12 +32,13 @@ function ShoppingCheckout() {
         )
       : 0;
 
-  async function handleCreatePayPalOrder() {
-    if (!cartItems || !cartItems.items || cartItems.items.length === 0) {
+  async function handleInitiatePaypalPayment() {
+    if (cartItems.length === 0) {
       toast({
         title: "Your cart is empty. Please add items to proceed",
         variant: "destructive",
       });
+
       return;
     }
     if (currentSelectedAddress === null) {
@@ -47,10 +46,9 @@ function ShoppingCheckout() {
         title: "Please select one address to proceed.",
         variant: "destructive",
       });
+
       return;
     }
-
-    setIsPaymemntStart(true);
 
     const orderData = {
       userId: user?.id,
@@ -74,7 +72,7 @@ function ShoppingCheckout() {
         notes: currentSelectedAddress?.notes,
       },
       orderStatus: "pending",
-      paymentMethod: "demo",
+      paymentMethod: "paypal",
       paymentStatus: "pending",
       totalAmount: totalCartAmount,
       orderDate: new Date(),
@@ -83,74 +81,36 @@ function ShoppingCheckout() {
       payerId: "",
     };
 
+    setIsPaymemntStart(true);
     try {
       const result = await dispatch(createNewOrder(orderData)).unwrap();
-      console.log('Order created:', result);
+      console.log('PayPal order created:', result);
       
-      if (result?.success && result?.orderId) {
-        setPaypalOrderId(result.orderId);
-        setDbOrderId(result.dbOrderId);
-        sessionStorage.setItem("currentOrderId", result.dbOrderId);
-        
-        // Handle demo payment immediately
-        await handleDemoPayment(result);
+      if (result?.success && result?.approvalURL) {
+        // Only redirect if we have a valid approval URL
+        window.location.href = result.approvalURL;
       } else {
+        setIsPaymemntStart(false);
         toast({
-          title: "Order Error",
-          description: "Could not create order. Please try again.",
+          title: "PayPal Error",
+          description: "Could not initialize PayPal checkout. Please try again.",
           variant: "destructive",
         });
-        setIsPaymemntStart(false);
       }
     } catch (error) {
-      console.error('Order creation error:', error);
+      console.error('PayPal checkout error:', error);
+      setIsPaymemntStart(false);
       toast({
         title: "Checkout Error",
         description: error?.message || "Could not process checkout. Please try again.",
         variant: "destructive",
       });
-      setIsPaymemntStart(false);
     }
   }
 
-  async function handleDemoPayment(result) {
-    try {
-      // Simulate payment processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Capture the payment (simulate successful payment)
-      const captureResult = await dispatch(capturePayment({
-        orderId: result.orderId,
-        dbOrderId: result.dbOrderId
-      })).unwrap();
-      
-      if (captureResult?.success) {
-        toast({
-          title: "Payment Successful!",
-          description: "Your order has been confirmed. This was a demo payment.",
-          variant: "default",
-        });
-        setIsPaymemntStart(false);
-        window.location.href = "/shop/payment-success";
-      } else {
-        toast({
-          title: "Payment Error",
-          description: "Payment failed. Please try again.",
-          variant: "destructive",
-        });
-        setIsPaymemntStart(false);
-      }
-    } catch (error) {
-      console.error('Demo payment error:', error);
-      toast({
-        title: "Payment Error",
-        description: "Payment failed. Please try again.",
-        variant: "destructive",
-      });
-      setIsPaymemntStart(false);
-    }
+  if (approvalURL) {
+    window.location.href = approvalURL;
   }
-
 
   return (
     <div className="flex flex-col">
@@ -175,17 +135,11 @@ function ShoppingCheckout() {
             </div>
           </div>
           <div className="mt-4 w-full">
-            {/* Demo Payment Button - Always Available */}
-            <Button 
-              onClick={handleCreatePayPalOrder}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={isPaymentStart}
-            >
-              {isPaymentStart ? "Processing Payment..." : "Complete Payment"}
+            <Button onClick={handleInitiatePaypalPayment} className="w-full">
+              {isPaymentStart
+                ? "Processing Paypal Payment..."
+                : "Checkout with Paypal"}
             </Button>
-            <p className="text-xs text-gray-500 mt-2 text-center">
-              This will process a demo payment. Your order will be created and confirmed immediately.
-            </p>
           </div>
         </div>
       </div>
