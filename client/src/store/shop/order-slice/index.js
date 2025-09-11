@@ -42,11 +42,11 @@ export const createNewOrder = createAsyncThunk(
 
 export const capturePayment = createAsyncThunk(
   "/order/capturePayment",
-  async ({ paymentId, orderId }, { rejectWithValue }) => {
+  async ({ orderId, dbOrderId }, { rejectWithValue }) => {
     try {
       const response = await axios.post(
         `${API_URL}/api/shop/order/capture`,
-        { paymentId, orderId }
+        { orderId, dbOrderId }
       );
       return response.data;
     } catch (error) {

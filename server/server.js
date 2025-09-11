@@ -10,7 +10,9 @@ console.log('Environment Check:');
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('PORT:', process.env.PORT);
 console.log('MongoDB:', process.env.ATLASDB_URL ? '[set]' : '[missing]');
-console.log('Payment System: Demo Mode (No external API keys required)');
+console.log('PayPal Client ID:', process.env.PAYPAL_CLIENT_ID ? '[set]' : '[missing]');
+console.log('PayPal Client Secret:', process.env.PAYPAL_CLIENT_SECRET ? '[set]' : '[missing]');
+console.log('Frontend URL:', process.env.FRONTEND_URL || 'https://project-ecommerce-ansh-0018.onrender.com');
 
 const authRouter = require("./routes/auth/auth-routes");
 const adminProductsRouter = require("./routes/admin/products-routes");

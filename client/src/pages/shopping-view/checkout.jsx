@@ -7,6 +7,7 @@ import { useState } from "react";
 import { createNewOrder, capturePayment } from "@/store/shop/order-slice";
 import { Navigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
 function ShoppingCheckout() {
   const { cartItems } = useSelector((state) => state.shopCart);
@@ -14,6 +15,8 @@ function ShoppingCheckout() {
   const { approvalURL } = useSelector((state) => state.shopOrder);
   const [currentSelectedAddress, setCurrentSelectedAddress] = useState(null);
   const [isPaymentStart, setIsPaymemntStart] = useState(false);
+  const [paypalOrderId, setPaypalOrderId] = useState(null);
+  const [dbOrderId, setDbOrderId] = useState(null);
   const dispatch = useDispatch();
   const { toast } = useToast();
 
@@ -32,13 +35,12 @@ function ShoppingCheckout() {
         )
       : 0;
 
-  async function handleInitiateDemoPayment() {
+  async function handleCreatePayPalOrder() {
     if (cartItems.length === 0) {
       toast({
         title: "Your cart is empty. Please add items to proceed",
         variant: "destructive",
       });
-
       return;
     }
     if (currentSelectedAddress === null) {
@@ -46,7 +48,6 @@ function ShoppingCheckout() {
         title: "Please select one address to proceed.",
         variant: "destructive",
       });
-
       return;
     }
 
@@ -72,7 +73,7 @@ function ShoppingCheckout() {
         notes: currentSelectedAddress?.notes,
       },
       orderStatus: "pending",
-      paymentMethod: "demo",
+      paymentMethod: "paypal",
       paymentStatus: "pending",
       totalAmount: totalCartAmount,
       orderDate: new Date(),
@@ -81,50 +82,60 @@ function ShoppingCheckout() {
       payerId: "",
     };
 
-    setIsPaymemntStart(true);
     try {
       const result = await dispatch(createNewOrder(orderData)).unwrap();
-      console.log('Demo order created:', result);
+      console.log('PayPal order created:', result);
       
       if (result?.success && result?.orderId) {
-        // Simulate payment processing delay
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Capture the payment (simulate successful payment)
-        const captureResult = await dispatch(capturePayment({
-          paymentId: result.paymentId,
-          orderId: result.orderId
-        })).unwrap();
-        
-        if (captureResult?.success) {
-          toast({
-            title: "Payment Successful!",
-            description: "Your order has been confirmed. This is a demo payment.",
-            variant: "default",
-          });
-          window.location.href = "/shop/payment-success";
-        } else {
-          setIsPaymemntStart(false);
-          toast({
-            title: "Payment Error",
-            description: "Payment failed. Please try again.",
-            variant: "destructive",
-          });
-        }
+        setPaypalOrderId(result.orderId);
+        setDbOrderId(result.dbOrderId);
+        sessionStorage.setItem("currentOrderId", result.dbOrderId);
+        return result.orderId;
       } else {
-        setIsPaymemntStart(false);
         toast({
           title: "Order Error",
           description: "Could not create order. Please try again.",
           variant: "destructive",
         });
+        return null;
       }
     } catch (error) {
-      console.error('Demo checkout error:', error);
-      setIsPaymemntStart(false);
+      console.error('PayPal order creation error:', error);
       toast({
         title: "Checkout Error",
         description: error?.message || "Could not process checkout. Please try again.",
+        variant: "destructive",
+      });
+      return null;
+    }
+  }
+
+  async function handleApprovePayPalOrder(data, actions) {
+    try {
+      const captureResult = await dispatch(capturePayment({
+        orderId: paypalOrderId,
+        dbOrderId: dbOrderId
+      })).unwrap();
+      
+      if (captureResult?.success) {
+        toast({
+          title: "Payment Successful!",
+          description: "Your order has been confirmed.",
+          variant: "default",
+        });
+        window.location.href = "/shop/payment-success";
+      } else {
+        toast({
+          title: "Payment Error",
+          description: "Payment failed. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('PayPal capture error:', error);
+      toast({
+        title: "Payment Error",
+        description: "Payment failed. Please try again.",
         variant: "destructive",
       });
     }
@@ -157,11 +168,31 @@ function ShoppingCheckout() {
             </div>
           </div>
           <div className="mt-4 w-full">
-            <Button onClick={handleInitiateDemoPayment} className="w-full">
-              {isPaymentStart
-                ? "Processing Payment..."
-                : "Checkout (Demo Payment)"}
-            </Button>
+            <PayPalScriptProvider 
+              options={{ 
+                "client-id": "sb", // PayPal sandbox client ID
+                currency: "USD"
+              }}
+            >
+              <PayPalButtons
+                createOrder={handleCreatePayPalOrder}
+                onApprove={handleApprovePayPalOrder}
+                onError={(err) => {
+                  console.error('PayPal error:', err);
+                  toast({
+                    title: "Payment Error",
+                    description: "An error occurred during payment. Please try again.",
+                    variant: "destructive",
+                  });
+                }}
+                style={{
+                  layout: "vertical",
+                  color: "blue",
+                  shape: "rect",
+                  label: "paypal"
+                }}
+              />
+            </PayPalScriptProvider>
           </div>
         </div>
       </div>

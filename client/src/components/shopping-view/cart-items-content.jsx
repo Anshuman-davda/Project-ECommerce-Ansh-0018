@@ -72,50 +72,59 @@ function UserCartItemsContent({ cartItem }) {
   }
 
   return (
-    <div className="flex items-center space-x-4">
+    <div className="flex items-center space-x-4 p-4 border rounded-lg hover:shadow-md transition-shadow">
       <img
         src={cartItem?.image}
         alt={cartItem?.title}
         className="w-20 h-20 rounded object-cover"
       />
       <div className="flex-1">
-        <h3 className="font-extrabold">{cartItem?.title}</h3>
-        <div className="flex items-center gap-2 mt-1">
-          <Button
-            variant="outline"
-            className="h-8 w-8 rounded-full"
-            size="icon"
-            disabled={cartItem?.quantity === 1}
-            onClick={() => handleUpdateQuantity(cartItem, "minus")}
-          >
-            <Minus className="w-4 h-4" />
-            <span className="sr-only">Decrease</span>
-          </Button>
-          <span className="font-semibold">{cartItem?.quantity}</span>
-          <Button
-            variant="outline"
-            className="h-8 w-8 rounded-full"
-            size="icon"
-            onClick={() => handleUpdateQuantity(cartItem, "plus")}
-          >
-            <Plus className="w-4 h-4" />
-            <span className="sr-only">Decrease</span>
-          </Button>
+        <h3 className="font-extrabold text-lg">{cartItem?.title}</h3>
+        <p className="text-sm text-gray-600 mb-2">
+          ${cartItem?.salePrice > 0 ? cartItem?.salePrice : cartItem?.price} each
+        </p>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 border rounded-lg p-1">
+            <Button
+              variant="outline"
+              className="h-8 w-8 rounded-full hover:bg-red-50 hover:border-red-200"
+              size="icon"
+              disabled={cartItem?.quantity === 1}
+              onClick={() => handleUpdateQuantity(cartItem, "minus")}
+            >
+              <Minus className="w-4 h-4" />
+              <span className="sr-only">Decrease</span>
+            </Button>
+            <span className="font-semibold min-w-[2rem] text-center">{cartItem?.quantity}</span>
+            <Button
+              variant="outline"
+              className="h-8 w-8 rounded-full hover:bg-green-50 hover:border-green-200"
+              size="icon"
+              onClick={() => handleUpdateQuantity(cartItem, "plus")}
+            >
+              <Plus className="w-4 h-4" />
+              <span className="sr-only">Increase</span>
+            </Button>
+          </div>
         </div>
       </div>
-      <div className="flex flex-col items-end">
-        <p className="font-semibold">
+      <div className="flex flex-col items-end gap-2">
+        <p className="font-bold text-lg">
           $
           {(
             (cartItem?.salePrice > 0 ? cartItem?.salePrice : cartItem?.price) *
             cartItem?.quantity
           ).toFixed(2)}
         </p>
-        <Trash
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => handleCartItemDelete(cartItem)}
-          className="cursor-pointer mt-1"
-          size={20}
-        />
+          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+        >
+          <Trash className="w-4 h-4 mr-1" />
+          Remove
+        </Button>
       </div>
     </div>
   );

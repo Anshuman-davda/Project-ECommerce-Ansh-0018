@@ -1,3 +1,4 @@
+const { client } = require("../../helpers/paypal");
 const Order = require("../../models/Order");
 const Cart = require("../../models/Cart");
 const Product = require("../../models/Product");
@@ -19,6 +20,34 @@ const createOrder = async (req, res) => {
       cartId,
     } = req.body;
 
+    // Create PayPal order
+    const request = new (require('@paypal/checkout-server-sdk').orders.OrdersCreateRequest)();
+    request.prefer("return=representation");
+    request.requestBody({
+      intent: 'CAPTURE',
+      purchase_units: [{
+        amount: {
+          currency_code: 'USD',
+          value: totalAmount.toFixed(2)
+        },
+        items: cartItems.map(item => ({
+          name: item.title,
+          unit_amount: {
+            currency_code: 'USD',
+            value: item.price.toFixed(2)
+          },
+          quantity: item.quantity.toString(),
+          sku: item.productId
+        }))
+      }],
+      application_context: {
+        return_url: `${process.env.FRONTEND_URL || 'https://project-ecommerce-ansh-0018.onrender.com'}/shop/paypal-return`,
+        cancel_url: `${process.env.FRONTEND_URL || 'https://project-ecommerce-ansh-0018.onrender.com'}/shop/paypal-cancel`
+      }
+    });
+
+    const paypalOrder = await client().execute(request);
+
     // Create order in database
     const newlyCreatedOrder = new Order({
       userId,
@@ -26,12 +55,12 @@ const createOrder = async (req, res) => {
       cartItems,
       addressInfo,
       orderStatus,
-      paymentMethod: "demo",
+      paymentMethod: "paypal",
       paymentStatus: "pending",
       totalAmount,
       orderDate,
       orderUpdateDate,
-      paymentId: `demo_${Date.now()}`,
+      paymentId: paypalOrder.result.id,
       payerId: "",
     });
 
@@ -39,76 +68,89 @@ const createOrder = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      orderId: newlyCreatedOrder._id,
-      paymentId: newlyCreatedOrder.paymentId,
-      message: "Order created successfully. Ready for demo payment."
+      orderId: paypalOrder.result.id,
+      approvalUrl: paypalOrder.result.links.find(link => link.rel === 'approve').href,
+      dbOrderId: newlyCreatedOrder._id
     });
 
   } catch (e) {
-    console.log(e);
+    console.log('PayPal order creation error:', e);
     res.status(500).json({
       success: false,
-      message: "Some error occurred!",
+      message: "Error creating PayPal order",
     });
   }
 };
 
 const capturePayment = async (req, res) => {
   try {
-    const { paymentId, orderId } = req.body;
+    const { orderId, dbOrderId } = req.body;
 
-    let order = await Order.findById(orderId);
+    // Capture PayPal payment
+    const request = new (require('@paypal/checkout-server-sdk').orders.OrdersCaptureRequest)(orderId);
+    request.requestBody({});
 
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order can not be found",
-      });
-    }
+    const capture = await client().execute(request);
 
-    // Simulate successful payment for demo
-    order.paymentStatus = "paid";
-    order.orderStatus = "confirmed";
-    order.paymentId = paymentId;
+    if (capture.result.status === 'COMPLETED') {
+      // Update database order
+      let order = await Order.findById(dbOrderId);
 
-    // Update product stock
-    for (let item of order.cartItems) {
-      let product = await Product.findById(item.productId);
-
-      if (!product) {
+      if (!order) {
         return res.status(404).json({
           success: false,
-          message: `Product not found: ${item.title}`,
+          message: "Order not found",
         });
       }
 
-      if (product.totalStock < item.quantity) {
-        return res.status(400).json({
-          success: false,
-          message: `Not enough stock for product: ${product.title}`,
-        });
+      order.paymentStatus = "paid";
+      order.orderStatus = "confirmed";
+      order.paymentId = orderId;
+
+      // Update product stock
+      for (let item of order.cartItems) {
+        let product = await Product.findById(item.productId);
+
+        if (!product) {
+          return res.status(404).json({
+            success: false,
+            message: `Product not found: ${item.title}`,
+          });
+        }
+
+        if (product.totalStock < item.quantity) {
+          return res.status(400).json({
+            success: false,
+            message: `Not enough stock for product: ${product.title}`,
+          });
+        }
+
+        product.totalStock -= item.quantity;
+        await product.save();
       }
 
-      product.totalStock -= item.quantity;
-      await product.save();
+      // Clear cart
+      const getCartId = order.cartId;
+      await Cart.findByIdAndDelete(getCartId);
+
+      await order.save();
+
+      res.status(200).json({
+        success: true,
+        message: "Payment captured successfully",
+        data: order,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: "Payment not completed",
+      });
     }
-
-    // Clear cart
-    const getCartId = order.cartId;
-    await Cart.findByIdAndDelete(getCartId);
-
-    await order.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Order confirmed",
-      data: order,
-    });
   } catch (e) {
-    console.log(e);
+    console.log('PayPal capture error:', e);
     res.status(500).json({
       success: false,
-      message: "Some error occurred!",
+      message: "Error capturing payment",
     });
   }
 };

@@ -2,12 +2,40 @@ import { Card, CardContent, CardFooter } from "../ui/card";
 import { Button } from "../ui/button";
 import { brandOptionsMap, categoryOptionsMap } from "@/config";
 import { Badge } from "../ui/badge";
+import { useState } from "react";
+import { useToast } from "../ui/use-toast";
+import { Check, ShoppingCart } from "lucide-react";
 
 function ShoppingProductTile({
   product,
   handleGetProductDetails,
   handleAddtoCart,
 }) {
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
+  const { toast } = useToast();
+
+  const handleAddToCartClick = async () => {
+    setIsAddingToCart(true);
+    try {
+      await handleAddtoCart(product?._id, product?.totalStock);
+      setAddedToCart(true);
+      toast({
+        title: "Added to cart!",
+        description: `${product?.title} has been added to your cart.`,
+      });
+      // Reset the added state after 2 seconds
+      setTimeout(() => setAddedToCart(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
   return (
     <Card className="w-full max-w-sm mx-auto">
       <div onClick={() => handleGetProductDetails(product?._id)}>
@@ -64,10 +92,30 @@ function ShoppingProductTile({
           </Button>
         ) : (
           <Button
-            onClick={() => handleAddtoCart(product?._id, product?.totalStock)}
-            className="w-full"
+            onClick={handleAddToCartClick}
+            disabled={isAddingToCart}
+            className={`w-full transition-all duration-200 ${
+              addedToCart 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : 'bg-primary hover:bg-primary/90'
+            }`}
           >
-            Add to cart
+            {isAddingToCart ? (
+              <>
+                <ShoppingCart className="w-4 h-4 mr-2 animate-pulse" />
+                Adding...
+              </>
+            ) : addedToCart ? (
+              <>
+                <Check className="w-4 h-4 mr-2" />
+                Added!
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Add to cart
+              </>
+            )}
           </Button>
         )}
       </CardFooter>
