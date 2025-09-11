@@ -8,6 +8,17 @@ import { createNewOrder, capturePayment } from "@/store/shop/order-slice";
 import { Navigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
+// Prevent PayPal from loading and causing errors
+if (typeof window !== 'undefined') {
+  window.paypal = null;
+  // Override PayPal initialization to prevent errors
+  window.addEventListener('DOMContentLoaded', () => {
+    if (window.paypal) {
+      window.paypal = null;
+    }
+  });
+}
+
 function ShoppingCheckout() {
   const { cartItems } = useSelector((state) => state.shopCart);
   const { user } = useSelector((state) => state.auth);
