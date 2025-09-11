@@ -1,3 +1,6 @@
+// API Configuration
+export const API_URL = import.meta.env.VITE_API_URL || 'https://project-ecommerce-ansh-0018.onrender.com';
+
 export const registerFormControls = [
   {
     name: "userName",

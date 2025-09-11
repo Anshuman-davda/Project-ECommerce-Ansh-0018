@@ -1,8 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
-
-// Use environment variable for API base URL
-const API_URL = import.meta.env.VITE_API_URL;
+import { API_URL } from "@/config";
 
 const initialState = {
   approvalURL: null,
@@ -44,11 +42,11 @@ export const createNewOrder = createAsyncThunk(
 
 export const capturePayment = createAsyncThunk(
   "/order/capturePayment",
-  async ({ paymentId, payerId, orderId }, { rejectWithValue }) => {
+  async ({ paymentId, orderId }, { rejectWithValue }) => {
     try {
       const response = await axios.post(
         `${API_URL}/api/shop/order/capture`,
-        { paymentId, payerId, orderId }
+        { paymentId, orderId }
       );
       return response.data;
     } catch (error) {
